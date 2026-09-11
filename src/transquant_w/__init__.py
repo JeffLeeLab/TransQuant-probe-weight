@@ -2,6 +2,7 @@
 
 from .core import (  # noqa: F401
     InputError,
+    case_blocks,
     Result,
     compute,
     figure_bytes,

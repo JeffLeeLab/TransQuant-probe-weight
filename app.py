@@ -10,7 +10,8 @@ st.title("TransQuant: Compute Probe Weight Factor")
 st.markdown(
     "Computes the probe weight factor **W**, gene length **L** and probe localisation "
     "profile **N** for an smFISH probe set, as defined in "
-    "[Halpern & Itzkovitz, *Methods* 2016](https://doi.org/10.1016/j.ymeth.2015.11.015) "
+    "[Halpern & Itzkovitz, *Methods* 2016](https://doi.org/10.1016/j.ymeth.2015.11.015) \n\n"
+    "See source repository [README.md](https://github.com/JeffLeeLab/TransQuant-probe-weight) for detailed usage instructions."
 )
 
 # ------------------------------------------------------------------ inputs --
@@ -41,6 +42,9 @@ with tcol1:
 with tcol2:
     target_file = st.file_uploader("…or upload FASTA", type=["fa", "fasta", "txt"], key="target_file")
     concat = st.toggle("Concatenate multi-entry FASTA", value=True)
+    shade = st.toggle("Shade uppercase blocks on the RNA bar", value=True,
+                      help="UCSC writes exons in UPPERCASE and introns in lowercase. Ignored if the sequence is "
+                           "single-case or the header says repeatMasking=lower.")
 
 st.subheader("2 · Probe sequences")
 st.caption(
@@ -88,8 +92,15 @@ if run:
               delta=None if res.n_sites == res.n_matched_probes else f"{res.n_sites} binding sites",
               delta_color="off")
 
-    fig = core.make_plot(res)
+    blocks = core.case_blocks(t_raw, concatenate=concat) if shade else None
+    fig = core.make_plot(res, blocks=blocks)
     st.pyplot(fig, use_container_width=True)
+    if blocks:
+        st.caption(
+            "Darker blocks on the RNA bar are the UPPERCASE runs of your sequence. UCSC writes exons in "
+            "uppercase, but depending on your download options these may be CDS, exons or UTRs. "
+            "Untick *Shade uppercase blocks* to hide them."
+        )
     d1, d2 = st.columns(2)
     d1.download_button("Download plot (PNG)", core.figure_bytes(fig, "png"),
                        file_name=f"probe_profile_W{res.W:.3f}.png", mime="image/png", use_container_width=True)
@@ -141,6 +152,6 @@ with st.expander("How to use W, L and your smFISH spot count measurements", expa
     st.caption("See Eqs. 3–8 in the original publication for the full treatment.")
 
 st.caption(
-    "Source and CLI: github.com/JeffLeeLab/TransQuant-probe-weight · "
+    "Source and CLI: [github.com/JeffLeeLab/TransQuant-probe-weight](https://github.com/JeffLeeLab/TransQuant-probe-weight) · "
     "Algorithm reimplemented from the TransQuant MATLAB code (compute_weight_factor.m)."
 )

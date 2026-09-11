@@ -74,19 +74,19 @@ def _normalise(seq: str) -> str:
     return seq.replace("U", "T")
 
 
-def parse_target(text: str, concatenate: bool = True) -> tuple[str, list[str]]:
-    """Return (sequence, warnings) from pasted text or FASTA content.
-
-    Whitespace and digits are stripped, U -> T, upper case. Allowed: A C G T N.
-    Multi-entry FASTA is concatenated in order (UCSC exon/intron download)
-    unless ``concatenate`` is False, in which case only the first entry is used.
-    """
+def _extract(text: str, concatenate: bool) -> tuple[str, list[str], list[str]]:
+    """Return (sequence with original letter case, FASTA headers, warnings)."""
     warnings: list[str] = []
+    headers: list[str] = []
     text = text.strip()
     if text.startswith(">"):
         entries = [e for e in re.split(r"^>", text, flags=re.M) if e.strip()]
-        seqs = [_normalise("".join(e.splitlines()[1:])) for e in entries]
-        seqs = [s for s in seqs if s]
+        seqs = []
+        for e in entries:
+            lines = e.splitlines()
+            headers.append(lines[0])
+            seqs.append(re.sub(r"[\s\d]", "", "".join(lines[1:])))
+        seqs = [q for q in seqs if q]
         if len(seqs) > 1:
             if concatenate:
                 warnings.append(
@@ -101,8 +101,19 @@ def parse_target(text: str, concatenate: bool = True) -> tuple[str, list[str]]:
         else:
             seq = seqs[0] if seqs else ""
     else:
-        seq = _normalise(text)
+        seq = re.sub(r"[\s\d]", "", text)
+    return seq.replace("U", "T").replace("u", "t"), headers, warnings
 
+
+def parse_target(text: str, concatenate: bool = True) -> tuple[str, list[str]]:
+    """Return (sequence, warnings) from pasted text or FASTA content.
+
+    Whitespace and digits are stripped, U -> T, upper case. Allowed: A C G T N.
+    Multi-entry FASTA is concatenated in order (UCSC exon/intron download)
+    unless ``concatenate`` is False, in which case only the first entry is used.
+    """
+    cased, _, warnings = _extract(text, concatenate)
+    seq = cased.upper()
     if not seq:
         raise InputError("Target sequence is empty.")
     if not _TARGET_OK.match(seq):
@@ -112,6 +123,24 @@ def parse_target(text: str, concatenate: bool = True) -> tuple[str, list[str]]:
             "Only A, C, G, T, U and N are allowed."
         )
     return seq, warnings
+
+
+def case_blocks(text: str, concatenate: bool = True) -> list[tuple[int, int]] | None:
+    """1-based inclusive (start, end) runs of UPPERCASE letters in the target, or None.
+
+    UCSC's Genomic Sequence download writes exons in upper case and introns in
+    lower case, so these runs usually mark exons (or CDS/UTR, depending on the
+    user's download options). Returns None when the sequence is single-case or
+    when a FASTA header says ``repeatMasking=lower`` (lower case then means
+    repeats, not introns).
+    """
+    cased, headers, _ = _extract(text, concatenate)
+    if any("repeatMasking=lower" in h for h in headers):
+        return None
+    letters = re.sub(r"[^A-Za-z]", "", cased)
+    if not letters or letters.isupper() or letters.islower():
+        return None
+    return [(m.start() + 1, m.end()) for m in re.finditer(r"[A-Z]+", cased)]
 
 
 def parse_probes(text: str) -> tuple[list[str], list[str]]:
@@ -256,12 +285,46 @@ def compute(
 
 # ------------------------------------------------------------------- plot
 
-def make_plot(res: Result, max_points: int = 50_000):
-    """Probe localisation profile, as in Fig. 3C of the paper. Returns a matplotlib Figure."""
+def make_plot(res: Result, blocks: list[tuple[int, int]] | None = None, max_points: int = 50_000):
+    """Probe map (top) and localisation profile (bottom, as in Fig. 3C of the paper).
+
+    ``blocks`` are (start, end) runs to shade on the RNA bar (see ``case_blocks``).
+    Returns a matplotlib Figure.
+    """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
 
+    main, accent = "#bb5a38", "#3d3a2a"
+    multi_colour = "#2a6f97"
+
+    fig, (ax_map, ax) = plt.subplots(
+        2, 1, figsize=(8, 5.4), dpi=120, sharex=True,
+        height_ratios=[1, 4], layout="constrained",
+    )
+    fig.get_layout_engine().set(hspace=0.02)
+    fig.suptitle(f"Gene length L = {res.L:,} bp    W = {res.W:.4f}")
+
+    # -- top: target RNA bar with probe barcode --------------------------------
+    bar_y, bar_h = 0.0, 0.28
+    ax_map.add_patch(Rectangle((1, bar_y - bar_h / 2), res.L, bar_h, color="#d3d2ca", lw=0))
+    for b0, b1 in blocks or []:
+        ax_map.add_patch(Rectangle((b0, bar_y - bar_h / 2), b1 - b0 + 1, bar_h, color="#8f8b7a", lw=0))
+    single = [h.mid for h in res.hits if h.probe not in res.multi_site]
+    multi = [h.mid for h in res.hits if h.probe in res.multi_site]
+    ax_map.vlines(single, 0.28, 0.95, color=main, lw=1.0, alpha=0.85)
+    if multi:
+        ax_map.vlines(multi, 0.28, 0.95, color=multi_colour, lw=1.0, alpha=0.85)
+    ax_map.text(1, -0.55, "5'", ha="left", va="top", fontsize=10, color=accent)
+    ax_map.text(res.L, -0.55, "3'", ha="right", va="top", fontsize=10, color=accent)
+    ax_map.set_ylim(-1.0, 1.05)
+    ax_map.set_yticks([])
+    for sp in ax_map.spines.values():
+        sp.set_visible(False)
+    ax_map.tick_params(axis="x", length=0)
+
+    # -- bottom: N(i) step plot with a marker per binding site ----------------
     x = np.arange(1, res.L + 1)
     y = res.N
     if res.L > max_points:
@@ -271,21 +334,27 @@ def make_plot(res: Result, max_points: int = 50_000):
             np.clip(np.array([int(h.mid) for h in res.hits]), 0, res.L - 1),
         ]))
         x, y = x[idx], y[idx]
+    ax.step(x, y, where="post", color=main, linewidth=1.4)
 
-    fig, ax = plt.subplots(figsize=(8, 4.2), dpi=120)
-    ax.step(x, y, where="post", color="#bb5a38", linewidth=1.6)
+    order = sorted(res.hits, key=lambda h: h.mid)
+    mids = np.array([h.mid for h in order])
+    ranks = np.arange(1, len(order) + 1)
+    is_multi = np.array([h.probe in res.multi_site for h in order])
+    ax.plot(mids[~is_multi], ranks[~is_multi], "o", ms=3.6, mfc="white", mec=main, mew=1.2, label="probe binding site")
+    if is_multi.any():
+        ax.plot(mids[is_multi], ranks[is_multi], "o", ms=3.6, mfc="white", mec=multi_colour, mew=1.2,
+                label="probe binding at several sites")
+        ax.legend(loc="upper left", frameon=False, fontsize=9)
+
     ax.set_xlabel("Position along the gene (bp)")
     ax.set_ylabel("Probes bound to nascent RNA")
     ax.set_xlim(1, res.L)
     ax.set_ylim(0, res.n_sites * 1.05)
-    ax.set_title(f"Gene length L = {res.L:,} bp    W = {res.W:.4f}")
     ax2 = ax.twinx()
     ax2.set_ylim(0, 105)
     ax2.set_ylabel("% of full probe set")
-    for spine in ("top",):
-        ax.spines[spine].set_visible(False)
-        ax2.spines[spine].set_visible(False)
-    fig.tight_layout()
+    ax.spines["top"].set_visible(False)
+    ax2.spines["top"].set_visible(False)
     return fig
 
 

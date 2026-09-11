@@ -208,6 +208,33 @@ def test_make_plot_returns_figure():
     probes = probes_at(TARGET, [1000, 5000, 9000])
     res = core.compute(TARGET, probes)
     fig = core.make_plot(res)
-    assert fig.axes
+    assert len(fig.axes) == 3
     png = core.figure_bytes(fig, "png")
     assert png[:4] == b"\x89PNG"
+
+
+# ------------------------------------------------------------ case shading ---
+
+def test_case_blocks_from_ucsc_style_case():
+    text = ">g range=chr1:1-20 strand=+ repeatMasking=none\nACGTacgtACGTTTacgtac\n"
+    assert core.case_blocks(text) == [(1, 4), (9, 14)]
+
+
+def test_case_blocks_none_when_single_case_or_repeat_masked():
+    assert core.case_blocks("ACGTACGT") is None
+    assert core.case_blocks("acgtacgt") is None
+    assert core.case_blocks(">g repeatMasking=lower\nACGTacgtACGT\n") is None
+
+
+def test_case_blocks_follow_concatenation_offsets():
+    text = ">exon1\nACGT\n>intron1\nacgt\n>exon2\nGG\n"
+    assert core.case_blocks(text) == [(1, 4), (9, 10)]
+    assert core.case_blocks(text, concatenate=False) is None  # first entry alone is single-case
+
+
+def test_make_plot_two_panels_with_blocks():
+    probes = probes_at(TARGET, [1000, 5000, 9000])
+    res = core.compute(TARGET, probes)
+    fig = core.make_plot(res, blocks=[(1, 500), (4000, 6000)])
+    assert len(fig.axes) == 3  # map, profile, twin % axis
+    assert len(fig.axes[1].lines) >= 2  # step line + markers

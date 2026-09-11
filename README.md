@@ -1,6 +1,6 @@
 # TransQuant probe weight factor (W)
 
-A small browser app and command-line tool that computes the **probe weight factor W**, the **gene length L** and the **probe localisation profile N** for a single-molecule FISH (smFISH) probe library, as defined in the TransQuant methodology:
+A browser app and command-line tool that computes the **probe weight factor W**, the **gene length L** and the **probe localisation profile N** for a single-molecule FISH (smFISH) probe set, as defined in the TransQuant methodology:
 
 > Bahar Halpern K, Itzkovitz S. *Single molecule approaches for quantifying transcription and degradation rates in intact mammalian tissues.* Methods 98:134–142 (2016). https://doi.org/10.1016/j.ymeth.2015.11.015
 
@@ -18,7 +18,7 @@ Only this correction factor is reimplemented here. Spot detection and counting a
 
 ### Step 1 — get the target gene sequence
 
-You need the **full genomic locus**, from transcription start to transcription end, **including all introns, exons and UTRs**. Do **not** use the spliced mRNA or cDNA: intron lengths determine how long Pol II spends between probe sites, which is exactly what W accounts for.
+You need the **full genomic locus**, from transcription start to transcription end, **including all introns, exons and UTRs**. Do **NOT** use the spliced mRNA or cDNA.
 
 The sequence must read **in the direction of transcription** (5' → 3' along the RNA, i.e. the coding/sense strand). The app does not read strand information from FASTA headers. `N` bases (undetermined regions) are allowed; probes never match across them.
 
@@ -32,7 +32,7 @@ Probes are the **antisense** oligos as you ordered them (complementary to the RN
 
 - **W** — the probe weight factor.
 - **L** — gene length in bp.
-- **Probes matched / supplied**, and the number of **binding sites**. A probe that matches the gene at several places is counted at every site, because every site binds in the image. Such probes, and any probe that was not found, are listed in a warning.
+- **Probes matched / supplied**, and the number of **binding sites**. A probe that matches the gene at several places is counted at every site. Such probes, and any probe that was not found, are listed in a warning.
 - **Plot** of N(i), the number of probes bound to a nascent RNA whose Pol II has reached position *i*. Download as PNG or SVG.
 - A ready-to-paste **methods sentence**.
 - **Probe positions** table (start, end, midpoint, number of sites).
