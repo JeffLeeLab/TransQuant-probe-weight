@@ -1,0 +1,14 @@
+# Developer environment only. End users of the browser app install nothing;
+# CLI users can `pip install .` instead.
+name: transquant-w
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13  # matches Pyodide/Python shipped by the pinned stlite (streamlit wheel tag cp313)
+  - numpy
+  - matplotlib
+  - streamlit
+  - pytest
+  - pip
+  - pip:
+      - -e .

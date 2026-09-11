@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this tool, please cite the original TransQuant methodology paper below, and optionally this repository."
+title: "TransQuant-probe-weight: probe weight factor (W) for smFISH transcription-site quantification"
+type: software
+authors:
+  - family-names: Lee
+    given-names: Jeff
+    affiliation: University of Glasgow
+repository-code: "https://github.com/JeffLeeLab/TransQuant-probe-weight"
+license: MIT
+references:
+  - type: article
+    title: "Single molecule approaches for quantifying transcription and degradation rates in intact mammalian tissues"
+    authors:
+      - family-names: Bahar Halpern
+        given-names: Keren
+      - family-names: Itzkovitz
+        given-names: Shalev
+    journal: Methods
+    volume: 98
+    year: 2016
+    pages: "134-142"
+    doi: 10.1016/j.ymeth.2015.11.015

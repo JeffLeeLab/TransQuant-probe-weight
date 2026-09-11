@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TransQuant probe weight factor (W)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@1.8.1/build/stlite.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap" />
+    <style>
+      /* Styrene B (internal use). Served next to this page from static/fonts/. */
+      @font-face { font-family: "Styrene B"; font-weight: 300; src: url("static/fonts/StyreneB-Light-Trial.otf") format("opentype"); }
+      @font-face { font-family: "Styrene B"; font-weight: 400; src: url("static/fonts/StyreneB-Regular-Trial.otf") format("opentype"); }
+      @font-face { font-family: "Styrene B"; font-weight: 500; src: url("static/fonts/StyreneB-Medium-Trial.otf") format("opentype"); }
+      @font-face { font-family: "Styrene B"; font-weight: 700; src: url("static/fonts/StyreneB-Bold-Trial.otf") format("opentype"); }
+      html, body { margin: 0; background: #f4f3ed; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@1.8.1/build/stlite.js";
+
+      mount(
+        {
+          entrypoint: "app.py",
+          files: {
+            "app.py": { url: "./app.py" },
+            "transquant_w/__init__.py": { url: "./transquant_w/__init__.py" },
+            "transquant_w/core.py": { url: "./transquant_w/core.py" },
+          },
+          requirements: ["numpy", "matplotlib"],
+          streamlitConfig: {
+            "server.maxUploadSize": 5,
+            "client.toolbarMode": "viewer",
+            "theme.primaryColor": "#bb5a38",
+            "theme.backgroundColor": "#f4f3ed",
+            "theme.secondaryBackgroundColor": "#ecebe3",
+            "theme.textColor": "#3d3a2a",
+            "theme.linkColor": "#3d3a2a",
+            "theme.borderColor": "#d3d2ca",
+            "theme.showWidgetBorder": true,
+            "theme.baseRadius": "0.6rem",
+            "theme.font": "Styrene B",
+            // Font URLs inside theme.font/codeFont break stlite 1.8.1 (react-helmet error); fonts are loaded via <link>/@font-face above instead.
+            "theme.codeFont": "Fira Code",
+            "theme.codeBackgroundColor": "#ecebe4",
+            // stlite streamlitConfig values must be string/number/boolean; list options (e.g. headingFontSizes) are not supported.
+            "theme.headingFontWeights": 500,
+          },
+        },
+        document.getElementById("root"),
+      );
+    </script>
+  </body>
+</html>
