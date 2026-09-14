@@ -12,4 +12,4 @@ from .core import (  # noqa: F401
     revcomp,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

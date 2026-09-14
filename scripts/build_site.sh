@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 rm -rf dist
 mkdir -p dist/transquant_w
 cp web/index.html app.py dist/
-cp src/transquant_w/__init__.py src/transquant_w/core.py dist/transquant_w/
+cp src/transquant_w/__init__.py src/transquant_w/core.py src/transquant_w/ui.py dist/transquant_w/
 cp -r static dist/
 touch dist/.nojekyll
 echo "built dist/"

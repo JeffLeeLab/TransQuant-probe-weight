@@ -123,9 +123,25 @@ res.W, res.L, res.N, res.hits, res.unmatched, res.multi_site
 fig = core.make_plot(res)
 ```
 
+### Embedding in another Streamlit app
+
+The app UI lives in `transquant_w.ui.render()`, a parameter-less function that draws the whole page body (title, inputs, results) and never calls `st.set_page_config`, `st.navigation`, `st.sidebar`, `st.stop` or touches `st.session_state`. That makes it safe to mount as one page of a host app that uses `st.navigation`, alongside other tools.
+
+```bash
+pip install "git+https://github.com/JeffLeeLab/TransQuant-probe-weight.git@<tag>"
+```
+
+```python
+import streamlit as st
+from transquant_w.ui import render
+render()
+```
+
+The host app owns `st.set_page_config` and the theme (page title/icon, layout, `.streamlit/config.toml` colours); `render()` only draws widgets inside whatever page it's placed on. The standalone `app.py` in this repo is just `st.set_page_config(...)` followed by `transquant_w.ui.render()`.
+
 ### How the browser build works
 
-`web/index.html` loads a pinned `@stlite/browser` from jsDelivr and mounts `app.py` and `transquant_w/core.py`, which are fetched from the same static site. `scripts/build_site.sh` assembles `dist/`; the GitHub Actions workflow runs the tests, builds `dist/` and deploys it to GitHub Pages (Pages source: *GitHub Actions*). To preview locally:
+`web/index.html` loads a pinned `@stlite/browser` from jsDelivr and mounts `app.py`, `transquant_w/core.py` and `transquant_w/ui.py`, which are fetched from the same static site. `scripts/build_site.sh` assembles `dist/`; the GitHub Actions workflow runs the tests, builds `dist/` and deploys it to GitHub Pages (Pages source: *GitHub Actions*). To preview locally:
 
 ```bash
 sh scripts/build_site.sh && python -m http.server -d dist 8000
